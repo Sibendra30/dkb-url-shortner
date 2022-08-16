@@ -10,6 +10,7 @@ import org.apache.commons.validator.routines.UrlValidator
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.util.*
@@ -19,14 +20,12 @@ import java.util.*
 @RequestMapping("/url-shortner")
 class UrlShortnerController @Autowired constructor(private val urlShortnerService: UrlShortnerService):UrlShortnerApi {
     @PostMapping
-    override fun createShortUrl(createShortUrlRequest: CreateShortUrlRequest?): ResponseEntity<CreateShortUrlResponse> {
+    override fun createShortUrl(@RequestBody createShortUrlRequest: CreateShortUrlRequest?): ResponseEntity<CreateShortUrlResponse> {
         val schemes = arrayOf("http", "https")
         val urlValidator = UrlValidator(schemes)
 
         if(createShortUrlRequest?.url == null
-            || urlValidator.isValid(createShortUrlRequest!!.url)) {
-            print("url valid---> ")
-            println(urlValidator.isValid(createShortUrlRequest!!.url))
+            || !urlValidator.isValid(createShortUrlRequest!!.url)) {
             throw IllegalArgumentException("Missing or invalid request")
         }
         val createShortUrlResponse: CreateShortUrlResponse = CreateShortUrlResponse()

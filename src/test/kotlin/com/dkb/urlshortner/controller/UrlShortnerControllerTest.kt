@@ -1,6 +1,7 @@
 package com.dkb.urlshortner.controller
 
 import com.dkb.urlshortner.entity.UrlComponent
+import com.dkb.urlshortner.error.ApiException
 import com.dkb.urlshortner.model.CreateShortUrlRequest
 import com.dkb.urlshortner.service.UrlShortnerService
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -46,4 +47,70 @@ internal class UrlShortnerControllerTest(@Autowired val mockMvc: MockMvc) {
             .andExpect(jsonPath("$.id").value("abc123"))
             .andExpect(jsonPath("$.shortUrl").value("http://tiny.com/abc123"))
     }
+
+    @Test
+    fun createShortUrl_urlMissing() {
+        val objectMapper = ObjectMapper();
+        val requestPayload: CreateShortUrlRequest = CreateShortUrlRequest()
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/url-shortner")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(requestPayload)))
+            .andExpect(MockMvcResultMatchers.status().isBadRequest)
+    }
+
+    @Test
+    fun createShortUrl_nullRequest() {
+        val objectMapper = ObjectMapper();
+        val requestPayload: CreateShortUrlRequest? = null
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/url-shortner")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(requestPayload)))
+            .andExpect(MockMvcResultMatchers.status().isBadRequest)
+    }
+
+    @Test
+    fun createShortUrl_invalidUrl() {
+        val objectMapper = ObjectMapper();
+
+        val requestPayload: CreateShortUrlRequest = CreateShortUrlRequest()
+        requestPayload.url = "example.com"
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/url-shortner")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(requestPayload)))
+            .andExpect(MockMvcResultMatchers.status().isBadRequest)
+    }
+
+    @Test
+    fun createShortUrl_serverError() {
+        Mockito.`when`(urlShortnerService.createShortUrl(LONG_URL))
+            .thenThrow(ApiException("Server error"))
+        val objectMapper = ObjectMapper();
+
+        val requestPayload: CreateShortUrlRequest = CreateShortUrlRequest()
+        requestPayload.url = LONG_URL
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/url-shortner")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(requestPayload)))
+            .andExpect(MockMvcResultMatchers.status().isInternalServerError)
+    }
+
+    @Test
+    fun createShortUrl_genericError() {
+        Mockito.`when`(urlShortnerService.createShortUrl(LONG_URL))
+            .thenThrow(RuntimeException("Server error"))
+        val objectMapper = ObjectMapper();
+
+        val requestPayload: CreateShortUrlRequest = CreateShortUrlRequest()
+        requestPayload.url = LONG_URL
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/url-shortner")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(requestPayload)))
+            .andExpect(MockMvcResultMatchers.status().isInternalServerError)
+    }
+
 }
